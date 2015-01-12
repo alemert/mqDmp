@@ -15,6 +15,7 @@
 // ---------------------------------------------------------
 // system
 // ---------------------------------------------------------
+#include <stdlib.h>
 
 // ---------------------------------------------------------
 // MQ
@@ -24,6 +25,7 @@
 // own 
 // ---------------------------------------------------------
 #include <ctl.h>
+#include <msgcat/lgstd.h>
 #include <mqbase.h>
 
 // ---------------------------------------------------------
@@ -69,7 +71,7 @@ const char** getQmgrAliases( MQHCONN hCon, int *sysRc )
   MQHBAG respBag = MQHB_UNUSABLE_HBAG;
   MQHBAG qAttrBag ;
 
-
+  MQLONG lng ;
   char** alias = NULL;
 
   // -------------------------------------------------------
@@ -123,14 +125,68 @@ const char** getQmgrAliases( MQHCONN hCon, int *sysRc )
   // for each queue are in a separate bag.  
   // -------------------------------------------------------
   itemCnt = mqBagCountItem( respBag, MQHA_BAG_HANDLE );
-  if( itemCnt > 0 )
-  {
-    mqrc = itemCnt ;
-    goto _door ;
-  }
-
-  for( i=0; i<itemCnt; i++ )
-  {
+  if( itemCnt > 0 )                       // item count is MQ reason code if > 0
+  {                                       // therefore error
+    mqrc = itemCnt;                       //
+    goto _door;                           // anything else is real item counter
+  }                                       //
+  itemCnt =- itemCnt ;                    //
+                                          // 
+  // -------------------------------------------------------
+  // allocate memory for queue names
+  // -------------------------------------------------------
+  alias = (char**) malloc( sizeof(char*)*(itemCnt+1));
+  if( alias == NULL )                     //
+  {                                       //
+    logger(LSTD_MEM_ALLOC_ERROR);         //
+    mqrc = -1 ;                           //
+    goto _door;                           //
+  }                                       //
+  alias[itemCnt] = NULL ;                 //
+                                          //
+  // -------------------------------------------------------
+  //
+  // -------------------------------------------------------
+  for( i=0; i<itemCnt; i++ )              // go through all bags (queues)
+  {                                       //
+    mqrc = mqBagInq( respBag   ,          // inquire each bag (each queue)
+                     i         ,          //
+                    &qAttrBag );          //
+                                          //
+    switch( mqrc )                        //  handle error
+    {                                     //
+      case MQRC_NONE : break;             //
+      default: goto _door;                //
+    }                                     //
+                                          //
+    alias[i] = (char*)malloc(sizeof(char)*(itemCnt)*(MQ_Q_NAME_LENGTH+1));
+    if( alias[i] == NULL )                //
+    {                                     //
+      logger(LSTD_MEM_ALLOC_ERROR);       //
+      mqrc = -1 ;                         //
+      goto _door;                         //
+    }                                     //
+    memset(alias[i],(int)' ',MQ_Q_NAME_LENGTH); 
+    alias[i][MQ_Q_NAME_LENGTH] = '\0';    //
+                                          //
+    mqrc = mqStrInq( qAttrBag          ,  // attribute bag
+                     MQCA_Q_NAME       ,  // selector (queue name)
+                     0                 ,  // item index
+                     MQ_Q_NAME_LENGTH  ,  // available buffer length
+                     (PMQCHAR) alias[i],  // buffer
+                     &lng             );  // real buffer length
+                                          //
+    switch( mqrc )                        //  handle error
+    {                                     //
+      case MQRC_NONE : break;             //
+      default: goto _door;                //
+    }                                     //
+                                          //
+    if( lng < MQ_Q_NAME_LENGTH)           //
+    {                                     //
+      goto _door;                         //
+    }                                     //
+                                          //
     
   }
 

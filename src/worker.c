@@ -63,6 +63,7 @@ int worker()
 
   MQHCONN  Hcon   ;                 // connection handle   
   char qmgrName[MQ_Q_MGR_NAME_LENGTH+1] ;
+  const char **qmgrAlias ;
 
   if( getStrAttr( "proxy" ) )
   {
@@ -95,7 +96,7 @@ int worker()
   // -------------------------------------------------------
   if( getFlagAttr("show") == 0 )                //
   {                                       //
-    getQmgrAliases( Hcon, &sysRc );       //
+    qmgrAlias = getQmgrAliases( Hcon, &sysRc );       //
   }                                       //
                                           //
   // -------------------------------------------------------
