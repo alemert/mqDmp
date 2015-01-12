@@ -20,7 +20,7 @@
 /*   D E F I N E S                                                            */
 /******************************************************************************/
 #ifdef C_MODULE_MAIN_MQDMP
-const char progname[] = "mqLogEv" ;
+const char progname[] = "dumpmq" ;
 #else
 extern const char progname[] ;
 #endif

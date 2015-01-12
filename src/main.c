@@ -1,6 +1,11 @@
 /******************************************************************************/
-/* change title on for new project                                            */
+/*                       D U M P   M Q   O B J E C T S                        */
+/*                                                */
+/*      module: main               */
+/*                                          */
 /******************************************************************************/
+
+#define C_MODULE_MAIN_MQDMP
 
 /******************************************************************************/
 /*   I N C L U D E S                                                          */
@@ -9,9 +14,12 @@
 // ---------------------------------------------------------
 // system
 // ---------------------------------------------------------
+#include <stdio.h>
+#include <stdlib.h>
+#include <limits.h>
 
 // ---------------------------------------------------------
-// mq
+// MQ
 // ---------------------------------------------------------
 
 // ---------------------------------------------------------
@@ -24,10 +32,12 @@
 // ---------------------------------------------------------
 // local
 // ---------------------------------------------------------
+#include <worker.h>
 
 /******************************************************************************/
 /*   D E F I N E S                                                            */
 /******************************************************************************/
+#define LOG_DIRECTORY   "log"
 
 /******************************************************************************/
 /*   M A C R O S                                                              */
@@ -51,13 +61,55 @@ int main(int argc, const char* argv[] )
   // -------------------------------------------------------
   // logging vara
   // -------------------------------------------------------
-  char* logDir ;
+  char logDir[PATH_MAX];
   char logName[PATH_MAX+NAME_MAX] ;
   int  logLevel = LNA ;
 
 
   sysRc = handleCmdLn( argc, argv ) ;
   if( sysRc != 0 ) goto _door ;
+
+  // -------------------------------------------------------
+  // setup the logging
+  // -------------------------------------------------------
+  if( getStrAttr( "log") )
+  {
+    snprintf( logDir, PATH_MAX, "%s", getStrAttr( "log") ) ;
+  }
+  else
+  {
+    snprintf( logDir, PATH_MAX, "%s/%s", getenv("HOME"),LOG_DIRECTORY );
+  }
+
+  if( getStrAttr( "loglev" ) )
+  {
+    logLevel = logStr2lev( getStrAttr( "loglev" ) );
+  }
+
+  if( logLevel == LNA )
+  {
+     logLevel = LOG;
+  }
+
+  snprintf( logName, PATH_MAX+NAME_MAX, "%s/%s.log", logDir, progname );
+  FILE *fp ;
+  fp = fopen( logName, "a+" ) ;
+  if( !fp )
+  {
+    fprintf( stderr, "can not open file %s\n", logName );
+    sysRc = 1;
+    goto _door;
+  }
+  fclose(fp);
+
+  sysRc = initLogging( (const char*) logName, logLevel );
+  if( sysRc != 0 ) goto _door;
+
+  // -------------------------------------------------------
+  // worker: real main
+  // -------------------------------------------------------
+  sysRc = worker();
+  if( sysRc != 0 ) goto _door;
 
 _door :
 

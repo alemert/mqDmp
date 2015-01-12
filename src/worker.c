@@ -1,5 +1,11 @@
 /******************************************************************************/
-/* change title on for new project                                            */
+/*                       D U M P   M Q   O B J E C T S                        */
+/*                                                                            */
+/*      module: worker                                                   */
+/*                                                                            */
+/*      functions:                              */
+/*        - worker                                      */
+/*            */
 /******************************************************************************/
 
 /******************************************************************************/
@@ -11,16 +17,22 @@
 // ---------------------------------------------------------
 
 // ---------------------------------------------------------
-// mq
+// MQ
 // ---------------------------------------------------------
+#include <cmqc.h>
 
 // ---------------------------------------------------------
 // own 
 // ---------------------------------------------------------
+#include <ctl.h>
+#include <mqbase.h>
 
 // ---------------------------------------------------------
 // local
 // ---------------------------------------------------------
+#include "cmdln.h"
+
+#include <worker.h>
 
 /******************************************************************************/
 /*   G L O B A L S                                                            */
@@ -43,5 +55,65 @@
 /*   F U N C T I O N S                                                        */
 /*                                                                            */
 /******************************************************************************/
+int worker()
+{
+  logFuncCall() ;                       
 
+  int sysRc = 0;
+
+  MQHCONN  Hcon   ;                 // connection handle   
+  char qmgrName[MQ_Q_MGR_NAME_LENGTH+1] ;
+
+  if( getStrAttr( "proxy" ) )
+  {
+    snprintf( qmgrName, MQ_Q_MGR_NAME_LENGTH, "%s", getStrAttr("proxy"));
+  }
+  else
+  {
+    memset(qmgrName,' ', MQ_Q_MGR_NAME_LENGTH );
+  }
+
+  // -------------------------------------------------------
+  // connect to queue manager
+  // -------------------------------------------------------
+  sysRc =  mqConn( (char*) qmgrName,      // queue manager          
+                           &Hcon  );      // connection handle            
+                                          //
+  switch( sysRc )                         //
+  {                                       //
+    case MQRC_NONE :     break ;          // OK
+    case MQRC_Q_MGR_NAME_ERROR :          // queue manager does not exists
+    {                                     //
+      logger(LMQM_UNKNOWN_QMGR,qmgrName); //
+      goto _conn;                         //
+    }                                     //
+    default : goto _conn;                 // error will be logged in mqConn
+  }                                       //
+                                          //
+  // -------------------------------------------------------
+  // check for command line (show / list queue manager aliases)
+  // -------------------------------------------------------
+  if( getFlagAttr("show") == 0 )                //
+  {                                       //
+    getQmgrAliases( Hcon, &sysRc );       //
+  }                                       //
+                                          //
+  // -------------------------------------------------------
+  // connect to queue manager
+  // -------------------------------------------------------
+  _door:                                  //
+                                          //
+  sysRc = mqDisc( &Hcon ) ;               //
+                                          //
+  switch( sysRc )                         //
+  {                                       //
+    case MQRC_NONE: break;                //
+    default : goto _door ;                //
+  }                                       //
+                                          //
+  logFuncExit( ) ;
+
+  _conn:
+  return sysRc ;
+}
 
