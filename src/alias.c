@@ -66,6 +66,7 @@ const char** getQmgrAliases( MQHCONN hCon, int *sysRc )
   MQLONG mqrc = MQRC_NONE ;
   MQLONG itemCnt ;
   int    i;
+  int    j;
 //MQLONG compCode ;
 
   MQHBAG cmdBag  = MQHB_UNUSABLE_HBAG;
@@ -229,10 +230,10 @@ const char** getQmgrAliases( MQHCONN hCon, int *sysRc )
       continue;                           //   empty transmission
     }                                     //
                                           //
-    mqrc = mqStrInq( qAttrBag        ,    // check for RQMNAME
-                     MQCA_REMOTE_Q_NAME,  //  attribute in Remote Queue
-                     0               ,    // 
-                     MQ_Q_NAME_LENGTH,    // 
+    mqrc = mqStrInq( qAttrBag        ,    //
+                     MQCA_REMOTE_Q_MGR_NAME, 
+                     0               ,    // check for RQMNAME 
+                     MQ_Q_NAME_LENGTH,    //  attribute in Remote Queue
                      qname           ,    // 
                      &lng           );    // 
     switch( mqrc )                        // 
@@ -241,7 +242,7 @@ const char** getQmgrAliases( MQHCONN hCon, int *sysRc )
       default: goto _door;                //
     }                                     //
                                           //
-    if( memcmp( qname, EMPTY_Q_NAME, MQ_Q_NAME_LENGTH) == 0 )
+    if( memcmp( qname, EMPTY_Q_NAME, MQ_Q_MGR_NAME_LENGTH == 0 ))
     {                                     // ignore all queues with 
       continue;                           //  empty remote queue manager name
     }                                     //
@@ -264,6 +265,25 @@ const char** getQmgrAliases( MQHCONN hCon, int *sysRc )
       goto _door;                         //
     }                                     //
   }                                       //
+
+  j=0;
+  for( i=0; alias[i] != NULL;i++)
+  {
+    if(alias[i][0] == ' ' )
+    {
+      continue;
+    }
+    if( j<i )
+    {
+      memcpy( alias[i],alias[j],MQ_Q_NAME_LENGTH) ;
+    }
+    j++;
+  }
+  for( ; alias[j] != NULL; j++)
+  {
+    free(alias[j]);
+    alias[j] = NULL ;
+  }
 
   _door:
 

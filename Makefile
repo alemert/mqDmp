@@ -18,9 +18,9 @@ DBGOPT = -g
 # ------------------------------------------------------------------------------
 # sources
 # ------------------------------------------------------------------------------
-SOURCES = worker.c alias.c
+SOURCES = worker.c alias.c xmlhnd.c
 
-LSOWN = msgcat mqutil
+LSOWN = msgcat mqutil sogen
 
 MQINST = /opt/mqm/750
 
