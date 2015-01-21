@@ -1,5 +1,5 @@
 /******************************************************************************/
-/*   M Q   D U M P             */
+/*   M Q   D U M P                   */
 /******************************************************************************/
 
 /******************************************************************************/
@@ -16,19 +16,46 @@
 /******************************************************************************/
 /*   D E F I N E S                                                            */
 /******************************************************************************/
-#define NO_XML_ID      -1 
+#define XML_NO_ID      -1 
+
+#define XML_ROOT_ID     0
+#define XML_ROOT_DSCR   "root"
+
+#define XML_ATTR_ID     10
+#define XML_ATTR_DSCR   "attr"
+
+#define XML_NAME_ID     11
+#define XML_NAME_DSCR   "name"
+
+#define XML_MQ_QMGR_ID   100
+#define XML_MQ_QMGR_DSCR "qmgr"
 
 /******************************************************************************/
 /*   T Y P E S                                                                */
 /******************************************************************************/
+
+// ---------------------------------------------------------
+// XML Node
+// ---------------------------------------------------------
 typedef struct sXmlNode  tXmlNode ;
-typedef enum eXmlType    tXmlType ;
-typedef union uXmlVara   tXmlVara ;
+typedef enum   eXmlType  tXmlType ;
+typedef union  uXmlVara  tXmlVara ;
+
+// ---------------------------------------------------------
+// XML Configuration Node
+// ---------------------------------------------------------
+typedef struct sXmlConfigNode  tXmlConfigNode ;
+typedef enum   eXmlAppliance   tXmlAppliance ;
 
 /******************************************************************************/
 /*   S T R U C T S                                                            */
 /******************************************************************************/
-enum eXmlType { NA, STR, INT };
+
+// ---------------------------------------------------------
+// XML Node
+// ---------------------------------------------------------
+enum eXmlType { NA, EMPTY, STR, INT };
+
 union uXmlVara 
 {
   int   iVal;
@@ -37,15 +64,32 @@ union uXmlVara
 
 struct sXmlNode
 {
-  int   id ;
-  char  descr[16];
+  int   id;          // id of the node, should be a #define macro
+                     //
+  tXmlType type;     //
+  tXmlVara vara;     //
+                     //
+  tXmlNode *parent;  //
+  tXmlNode *child ;  //
+  tXmlNode *next  ;  //
+};
 
-  tXmlType type ;
-  tXmlVara vara;
+// ---------------------------------------------------------
+// XML Configuration Node
+// ---------------------------------------------------------
+enum eXmlAppliance { OPTIONAL, OBLIGATORY };
 
-  tXmlNode *parent;
-  tXmlNode *child ;
-  tXmlNode *next  ;
+struct sXmlConfigNode
+{
+  int   id;                 //
+  char *description;        //
+                            //
+  tXmlType       type;      //
+  tXmlAppliance appliance;  //
+                            //
+  tXmlConfigNode *parent;   //
+  tXmlConfigNode *child ;   //
+  tXmlConfigNode *next  ;   //
 };
 
 /******************************************************************************/
@@ -55,8 +99,22 @@ struct sXmlNode
 /******************************************************************************/
 /*   M A C R O S                                                              */
 /******************************************************************************/
+#define findXmlCfgNode(     ...)                                   \
+        findXmlCfgNodeFunc( getXmlCfgRoot()                      , \
+                            ( sizeof( (int[]){0,##__VA_ARGS__} ) / \
+			    sizeof(MQLONG)-1)                    , \
+			    ##__VA_ARGS__                          ) 
 
 /******************************************************************************/
 /*   P R O T O T Y P E S                                                      */
 /******************************************************************************/
+int getXMLconfig( const char* file );
 
+tXmlConfigNode* createConfigXmlNode( tXmlConfigNode *_parent, 
+                                     int             _id    , 
+                                     const char*     _dscr  ,
+                                     tXmlType        _type  ,
+                                     tXmlAppliance   _appl  );
+
+tXmlConfigNode* getXmlCfgRoot();
+tXmlConfigNode* findXmlCfgNodeFunc( tXmlConfigNode *start, int argc, ... );

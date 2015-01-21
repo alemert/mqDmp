@@ -1,11 +1,14 @@
 /******************************************************************************/
-/*                                                                        */
-/*   M Q   D U M P                                             */
-/*                                                                */
-/*   functions:                                            */
-/*      - readXml                                  */
-/*      - getXMLconfig                        */
-/*      - createXmlNode                    */
+/*                                                                            */
+/*   M Q   D U M P                                                            */
+/*                                                                            */
+/*   functions:                                                        */
+/*      - readXml                                              */
+/*      - getXMLconfig                                    */
+/*      - createConfigXmlNode                          */
+/*      - createXmlNode                            */
+/*      - getXmlCfgRoot                              */
+/*      - findXmlCfgNodeFunc            */
 /*                                    */
 /******************************************************************************/
 
@@ -18,6 +21,7 @@
 // ---------------------------------------------------------
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 
 // ---------------------------------------------------------
 // own 
@@ -35,8 +39,8 @@
 /******************************************************************************/
 /*   G L O B A L S                                                            */
 /******************************************************************************/
-tXmlNode _gXmlRoot ;
-tXmlNode *_gpXmlRoot = &_gXmlRoot;
+tXmlNode       *_gXmlRoot;
+tXmlConfigNode *_gXmlCfgRoot;
 
 /******************************************************************************/
 /*   D E F I N E S                                                            */
@@ -143,7 +147,70 @@ int getXMLconfig( const char* file )
 }
 
 /******************************************************************************/
-/*  initialize XML node                  */
+/*  create XML node                        */
+/******************************************************************************/
+tXmlConfigNode* createConfigXmlNode( tXmlConfigNode *_parent, 
+                                     int             _id    , 
+                                     const char*     _dscr  ,
+                                     tXmlType        _type  ,
+                                     tXmlAppliance   _appl  )
+{
+  logFuncCall() ;                       
+
+  tXmlConfigNode *node ;
+  tXmlConfigNode *p ;
+
+  node = (tXmlConfigNode*)malloc( sizeof(tXmlConfigNode) ); 
+  if( node == NULL )                  // allocate memory for new
+  {                                   //   configuration node 
+    logger( LSTD_MEM_ALLOC_ERROR );   // and
+    goto _door ;                      // handle allocation error
+  }                                   //
+                                      //
+  // -------------------------------------------------------
+  // setup base configuration
+  // -------------------------------------------------------
+  node->id = _id;                     // id, which should be #define macro
+  node->description = (char*) _dscr;  // description (#define macro)
+  node->type = _type;                 // data type 
+  node->appliance = _appl;            // (obligatory or optional)
+  node->parent = _parent;             // parent node, if null, then this nod 
+                                      //   is a root node
+  // -------------------------------------------------------
+  // setup relationship
+  // -------------------------------------------------------
+  node->child = NULL;                 //
+  node->next  = NULL;                 //
+  if( _parent == NULL )               // handle a root node
+  {                                   //
+    _gXmlCfgRoot = node;              // set up as global root
+  }                                   //
+  else                                //
+  {                                   //
+    node->parent = _parent;           //
+    if( !node->parent->child )        // this node is the first child 
+    {                                 //
+      node->parent->child = node;     //
+    }                                 //
+    else                              //
+    {                                 //
+      p = node->parent->child;        // this node is not first child
+      while(p->next)                  // find the last child 
+      {                               //
+	p=p->next;                    // and add this node as sister (next)
+      }                               // to the last child
+      p->next = node;                 //
+    }                                 //
+  }                                   //
+
+  _door:
+
+  logFuncExit( ) ;
+  return node;
+}
+
+/******************************************************************************/
+/*  create XML node                        */
 /******************************************************************************/
 tXmlNode* createXmlNode()
 {
@@ -151,23 +218,64 @@ tXmlNode* createXmlNode()
 
   tXmlNode *node ;
 
-  node = (tXmlNode*) malloc( sizeof(tXmlNode));
-  if( node == NULL )                           //   of the ini-file
-  {                                              //  & handle alloc error
-    logger( LSTD_MEM_ALLOC_ERROR ) ;             //
-    goto _door ;                                 //
-  }                                              //
-  
-  node->id = NO_XML_ID ;
-  memset(node->descr[16],(int)' ',sizeof(node->descr));
-  node->type = NA ;
-  node->vara.iVal = 0 ;
-  node->parent = NULL;
-  node->child = NULL;
-  node->next  = NULL;
-
+  node = (tXmlNode*)malloc( sizeof(tXmlNode) ); //
+  if( node == NULL )                            //   
+  {                                             //   handle allocation error
+    logger( LSTD_MEM_ALLOC_ERROR );             //
+    goto _door ;                                //
+  }                                             //
+                                                //
+  node->id        = XML_NO_ID;                  //
+  node->type      = NA;                         //
+  node->vara.iVal = 0;                          //
+  node->parent    = NULL;                       //
+  node->child     = NULL;                       //
+  node->next      = NULL;                       //
+      
   _door:
   return node ;
 
   logFuncExit( ) ;
+}
+
+/******************************************************************************/
+/*  get XML configuration root node                      */
+/******************************************************************************/
+tXmlConfigNode* getXmlCfgRoot()
+{
+  return _gXmlCfgRoot ;
+}
+
+/******************************************************************************/
+/*  find XML configuration node                  */
+/******************************************************************************/
+tXmlConfigNode* findXmlCfgNodeFunc( tXmlConfigNode *start, int argc, ... )
+{
+  tXmlConfigNode *node = NULL;
+  tXmlConfigNode *p    = start;
+
+  int i ;
+
+  int id = XML_NO_ID ;
+
+  va_list argp;
+
+  va_start( argp, argc );
+
+  for(i=0;i<argc;i++)
+  {
+    id = va_arg( argp, int );
+    while( p )
+    {
+      if( p->id == id ) 
+      {
+        if( p->child == NULL ) break ;
+        p = p->child ;
+	break;
+      }
+      p=p->next;
+    }
+  }
+  if( p ) node=p;
+  return node; 
 }

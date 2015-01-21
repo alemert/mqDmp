@@ -1,10 +1,11 @@
 /******************************************************************************/
 /*                       D U M P   M Q   O B J E C T S                        */
 /*                                                                            */
-/*      module: worker                                                   */
+/*      module: worker                                                        */
 /*                                                                            */
-/*      functions:                              */
-/*        - worker                                      */
+/*      functions:                                  */
+/*        - worker                                          */
+/*        - setupXmlConfig              */
 /*                        */
 /******************************************************************************/
 
@@ -34,6 +35,7 @@
 #include "cmdln.h"
 
 #include <worker.h>
+#include <xmlhnd.h>
 
 /******************************************************************************/
 /*   G L O B A L S                                                            */
@@ -50,6 +52,7 @@
 /******************************************************************************/
 /*   P R O T O T Y P E S                                                      */
 /******************************************************************************/
+int setupXmlConfig();
 
 /******************************************************************************/
 /*                                                                            */
@@ -103,13 +106,33 @@ int worker()
   // -------------------------------------------------------
   if( getFlagAttr("show") == 0 )          //
   {                                       //
-    p=(char**)qmgrAlias;            //
-    while( *p )                      //
-    {                                    //
-      printf( " %s\n", *p );        //
-      p++;                          //
-    }                                    //
+    p=(char**)qmgrAlias;                  //
+    while( *p )                           //
+    {                                     //
+      printf( " %s\n", *p );              //
+      p++;                                //
+    }                                     //
+    sysRc = 0;                            //
+    goto _door;                           //
   }                                       //
+                        //
+  // -------------------------------------------------------
+  // for all other command line attributes an initialization file is necessary
+  // -------------------------------------------------------
+  if( !getStrAttr("ini")  )               //
+  {                                       //
+    fprintf(stderr,"--ini attribute missing\n") ;
+    sysRc = 1;          //
+    goto _door;          //
+  }                                      //
+                      //
+  setupXmlConfig();      // setup XML rules
+                          //
+  if( getXMLconfig( getStrAttr("ini") ) != 0 )
+  {                  //
+    sysRc = 2;      //
+    goto _door;      //
+  }                                  //
                                           //
   // -------------------------------------------------------
   // error handling exit point
@@ -133,3 +156,43 @@ int worker()
   return sysRc ;
 }
 
+/******************************************************************************/
+/* setup XML Configuration                        */
+/******************************************************************************/
+int setupXmlConfig()
+{
+  int sysRc = 0;
+
+  logFuncCall() ;                       
+
+//  tXmlConfigNode *node; 
+  
+  if( !createConfigXmlNode( NULL         , 
+                            XML_ROOT_ID  , 
+                            XML_ROOT_DSCR, 
+                            EMPTY        , 
+                            OBLIGATORY ) ) { sysRc=1; goto _door;}
+
+  if( !createConfigXmlNode( getXmlCfgRoot(), 
+                            XML_ATTR_ID,
+                            XML_ATTR_DSCR,
+                            EMPTY        , 
+                            OBLIGATORY  ) ) { sysRc=1; goto _door;}
+
+  if( !createConfigXmlNode( getXmlCfgRoot(), 
+                            XML_MQ_QMGR_ID ,
+                            XML_MQ_QMGR_DSCR,
+                            EMPTY          , 
+                            OBLIGATORY   ) ) { sysRc=1; goto _door;}
+
+  if( !createConfigXmlNode( findXmlCfgNode( XML_ROOT_ID     , 
+                                            XML_MQ_QMGR_ID ),
+                            XML_NAME_ID, XML_NAME_DSCR,
+                            STR        , 
+                            OBLIGATORY   ) ) { sysRc=1; goto _door;}
+
+  _door:
+
+  logFuncExit( ) ;
+  return sysRc;
+}
