@@ -21,13 +21,16 @@
 #define XML_ROOT_ID     0
 #define XML_ROOT_DSCR   "root"
 
-#define XML_ATTR_ID     10
-#define XML_ATTR_DSCR   "attr"
+#define XML_GEN_ID     10
+#define XML_GEN_DSCR   "genaral"
 
 #define XML_NAME_ID     11
 #define XML_NAME_DSCR   "name"
 
-#define XML_MQ_QMGR_ID   100
+#define XML_MQ_ALL_QMGR_ID   100
+#define XML_MQ_ALL_QMGR_DSCR "allqmgr"
+
+#define XML_MQ_QMGR_ID   101
 #define XML_MQ_QMGR_DSCR "qmgr"
 
 /******************************************************************************/

@@ -1,2 +1,11 @@
-<config>
-</config>
+<root>
+  <general>
+
+  </general>
+
+  <allqmgr>
+    <qmgr>
+      name = OMEGA
+    </qmgr> 
+  </allqmgr>
+</root>

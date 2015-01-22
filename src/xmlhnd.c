@@ -2,13 +2,17 @@
 /*                                                                            */
 /*   M Q   D U M P                                                            */
 /*                                                                            */
-/*   functions:                                                        */
-/*      - readXml                                              */
-/*      - getXMLconfig                                    */
-/*      - createConfigXmlNode                          */
-/*      - createXmlNode                            */
-/*      - getXmlCfgRoot                              */
-/*      - findXmlCfgNodeFunc            */
+/*   functions:                                                               */
+/*      - readXml                                                             */
+/*      - getXMLconfig                                                    */
+/*      - createConfigXmlNod  e                                  */
+/*      - createXmlNode                                            */
+/*      - getXmlCfgRoot                                              */
+/*      - getXmlRoot                                */
+/*      - findXmlCfgNodeFunc                  */
+/*      - openXmlTag                        */
+/*      - closeXmlTag                    */
+/*      - setXmlNode                    */
 /*                                    */
 /******************************************************************************/
 
@@ -22,6 +26,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <regex.h>
 
 // ---------------------------------------------------------
 // own 
@@ -45,6 +50,7 @@ tXmlConfigNode *_gXmlCfgRoot;
 /******************************************************************************/
 /*   D E F I N E S                                                            */
 /******************************************************************************/
+#define XML_TAG_LENGTH 32
 
 /******************************************************************************/
 /*   M A C R O S                                                              */
@@ -54,6 +60,11 @@ tXmlConfigNode *_gXmlCfgRoot;
 /*   P R O T O T Y P E S                                                      */
 /******************************************************************************/
 int readXml( const char* file, char** _xmlMem );
+tXmlNode* setXmlNode( tXmlNode *xml, tXmlConfigNode *cfg, char *mem );
+tXmlNode* getXmlRoot();
+tXmlConfigNode* getXmlCfgRoot();
+const char* openXmlTag( tXmlConfigNode *node);
+const char* closeXmlTag( tXmlConfigNode *node);
 
 /******************************************************************************/
 /*                                                                            */
@@ -116,7 +127,7 @@ int readXml( const char* file, char** _xmlMem )
     goto _door ;                                 //
   }                                              //
   *(xmlMem+realSize) = '\0' ;                    // set the end of ini file flag
-                    //
+                            //
   _door:
 
   if( ini != NULL ) fclose( ini ) ;
@@ -140,6 +151,8 @@ int getXMLconfig( const char* file )
   sysRc = readXml( file, &mem );
   if( sysRc != 0 ) goto _door;
 
+  setXmlNode ( getXmlRoot(), getXmlCfgRoot() ,mem );
+
   _door:
 
   logFuncExit( ) ;
@@ -147,7 +160,7 @@ int getXMLconfig( const char* file )
 }
 
 /******************************************************************************/
-/*  create XML node                        */
+/*  create XML node                              */
 /******************************************************************************/
 tXmlConfigNode* createConfigXmlNode( tXmlConfigNode *_parent, 
                                      int             _id    , 
@@ -239,18 +252,25 @@ tXmlNode* createXmlNode()
 }
 
 /******************************************************************************/
-/*  get XML configuration root node                      */
+/*  get XML configuration root node                            */
 /******************************************************************************/
 tXmlConfigNode* getXmlCfgRoot()
 {
   return _gXmlCfgRoot ;
 }
 
+tXmlNode* getXmlRoot()
+{
+  return _gXmlRoot ;
+}
+
 /******************************************************************************/
-/*  find XML configuration node                  */
+/*  find XML configuration node                              */
 /******************************************************************************/
 tXmlConfigNode* findXmlCfgNodeFunc( tXmlConfigNode *start, int argc, ... )
 {
+  logFuncCall() ;                       
+
   tXmlConfigNode *node = NULL;
   tXmlConfigNode *p    = start;
 
@@ -278,4 +298,79 @@ tXmlConfigNode* findXmlCfgNodeFunc( tXmlConfigNode *start, int argc, ... )
   }
   if( p ) node=p;
   return node; 
+}
+
+/******************************************************************************/
+/*  open XML tag                            */
+/******************************************************************************/
+const char* openXmlTag( tXmlConfigNode *node)
+{
+  logFuncCall() ;                       
+  static char buffer[XML_TAG_LENGTH] ;
+
+  snprintf(buffer,XML_TAG_LENGTH,"<%s>",node->description);
+
+  logFuncExit( ) ;
+  return buffer ; 
+}
+
+/******************************************************************************/
+/*  close XML tag                            */
+/******************************************************************************/
+const char* closeXmlTag( tXmlConfigNode *node)
+{
+  logFuncCall() ;                       
+  static char buffer[XML_TAG_LENGTH] ;
+
+  snprintf(buffer,XML_TAG_LENGTH,"</%s>",node->description);
+
+  logFuncExit( ) ;
+  return buffer ; 
+}
+
+/******************************************************************************/
+/*  set XML node                                           */
+/******************************************************************************/
+tXmlNode* setXmlNode( tXmlNode *xml, tXmlConfigNode *cfg, char *mem )
+{
+  logFuncCall() ;                       
+  int sysRc ;  
+
+  char       rxNat[4*XML_TAG_LENGTH];       // regular expression native
+  regex_t    rxComp;                        // regular expression compiled
+  regmatch_t rxMatch[3];                    // regular expression match array
+                                            //
+  const char* openTag  = openXmlTag(cfg);   //
+  const char* closeTag = closeXmlTag(cfg);  //
+                                      //
+  // -------------------------------------------------------
+  // build up, compile and execute regular expression
+  // -------------------------------------------------------
+  snprintf( rxNat           ,         //
+            4*XML_TAG_LENGTH,         //
+            "(%s.+%s)+"    ,         //
+            openTag         ,         //
+            closeTag       );         //
+
+  sysRc = regcomp( &rxComp, rxNat, REG_NOTBOL );
+  if( sysRc != 0 )                    //
+  {                        //
+    // logger
+    goto _door;        //
+  }                        //
+                   //
+  char* p = rxNat;
+  sysRc = regexec( &rxComp ,      // regular expression
+                    mem    ,      // string to analyze
+                    3      ,         // number of substrings to match
+                    rxMatch,     // matched strings
+                    0     );        // flags
+                                //
+  printf("%10.10s\n %10.10s\n %10.10s\n",(mem+rxMatch[0].rm_so),
+                                   (mem+rxMatch[1].rm_so),
+                                   (mem+rxMatch[2].rm_so));
+  _door:
+
+  logFuncExit( ) ;
+  return NULL ;
 }
