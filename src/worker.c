@@ -115,23 +115,23 @@ int worker()
     sysRc = 0;                            //
     goto _door;                           //
   }                                       //
-                        //
+                                          //
   // -------------------------------------------------------
   // for all other command line attributes an initialization file is necessary
   // -------------------------------------------------------
   if( !getStrAttr("ini")  )               //
   {                                       //
     fprintf(stderr,"--ini attribute missing\n") ;
-    sysRc = 1;                      //
-    goto _door;                //
+    sysRc = 1;                            //
+    goto _door;                           //
   }                                       //
-                                  //
-  setupXmlConfig();          // setup XML rules
-                                    //
-  if( getXMLconfig( getStrAttr("ini") ) != 0 )
-  {                                    //
-    sysRc = 2;                  //
-    goto _door;                  //
+                                          //
+  setupXmlConfig();                       // setup XML rules
+                                          //
+  if( getXml( getStrAttr("ini") ) != 0 )  //
+  {                                       //
+    sysRc = 2;                            //
+    goto _door;                           //
   }                                       //
                                           //
   // -------------------------------------------------------
@@ -177,6 +177,12 @@ int setupXmlConfig()
                             EMPTY        , 
                             OBLIGATORY  ) ) { sysRc=1; goto _door;}
 
+  if( !createConfigXmlNode( findXmlCfgNode( XML_ROOT_ID,
+                                            XML_GEN_ID ),
+                            MQIA_TRIGGER_CONTROL, def2str(MQIA_TRIGGER_CONTROL),
+                            INT        , 
+                            OBLIGATORY  ) ) { sysRc=1; goto _door;}
+
   if( !createConfigXmlNode( getXmlCfgRoot(), 
                             XML_MQ_ALL_QMGR_ID , XML_MQ_ALL_QMGR_DSCR,
                             EMPTY          , 
@@ -185,16 +191,17 @@ int setupXmlConfig()
   if( !createConfigXmlNode( findXmlCfgNode( XML_ROOT_ID  ,
                                             XML_MQ_ALL_QMGR_ID),
                             XML_MQ_QMGR_ID , XML_MQ_QMGR_DSCR,
-                            EMPTY          , 
+                            FILTER         , 
                             OBLIGATORY   ) ) { sysRc=1; goto _door;}
 
-  if( !createConfigXmlNode( findXmlCfgNode( XML_ROOT_ID     , 
-                                            XML_MQ_ALL_QMGR_ID,
-                                            XML_MQ_QMGR_ID ),
+#if(0)
+  if( !createConfigXmlNode( findXmlCfgNode( XML_ROOT_ID    , 
+                                            XML_MQ_QMGR_ID ,
+                                            XML_MQ_QMGR_ID),
                             XML_NAME_ID, XML_NAME_DSCR,
                             STR        , 
                             OBLIGATORY   ) ) { sysRc=1; goto _door;}
-
+#endif
   _door:
 
   logFuncExit( ) ;

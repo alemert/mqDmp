@@ -1,11 +1,11 @@
 <root>
-  <general>
-
+  <general>   
+    MQIA_TRIGGER_CONTROL=0
   </general>
 
   <allqmgr>
-    <qmgr>
-      name = OMEGA
+    <qmgr name="OMEGA">
+      disable = yes
     </qmgr> 
   </allqmgr>
 </root>

@@ -22,16 +22,15 @@
 #define XML_ROOT_DSCR   "root"
 
 #define XML_GEN_ID     10
-#define XML_GEN_DSCR   "genaral"
-
-#define XML_NAME_ID     11
-#define XML_NAME_DSCR   "name"
+#define XML_GEN_DSCR   "general"
 
 #define XML_MQ_ALL_QMGR_ID   100
 #define XML_MQ_ALL_QMGR_DSCR "allqmgr"
 
 #define XML_MQ_QMGR_ID   101
 #define XML_MQ_QMGR_DSCR "qmgr"
+
+#define def2str( str) #str 
 
 /******************************************************************************/
 /*   T Y P E S                                                                */
@@ -57,7 +56,14 @@ typedef enum   eXmlAppliance   tXmlAppliance ;
 // ---------------------------------------------------------
 // XML Node
 // ---------------------------------------------------------
-enum eXmlType { NA, EMPTY, STR, INT };
+enum eXmlType 
+{ 
+  NA    ,       // not available
+  EMPTY ,       // empty parent node
+  FILTER,       // parent node with string filter 
+  STR   ,       // child node with string value
+  INT           // child node with integer value
+};
 
 union uXmlVara 
 {
@@ -67,14 +73,15 @@ union uXmlVara
 
 struct sXmlNode
 {
-  int   id;          // id of the node, should be a #define macro
-                     //
-  tXmlType type;     //
-  tXmlVara vara;     //
-                     //
-  tXmlNode *parent;  //
-  tXmlNode *child ;  //
-  tXmlNode *next  ;  //
+  int      id;          // id of the node, should be a #define macro
+                        //
+  tXmlType type;        // type of the node
+  tXmlVara vara;        //
+  char     filter[16];  //
+                        //
+  tXmlNode *parent;     //
+  tXmlNode *child ;     //
+  tXmlNode *next  ;     //
 };
 
 // ---------------------------------------------------------
@@ -111,7 +118,7 @@ struct sXmlConfigNode
 /******************************************************************************/
 /*   P R O T O T Y P E S                                                      */
 /******************************************************************************/
-int getXMLconfig( const char* file );
+int getXml( const char* file );
 
 tXmlConfigNode* createConfigXmlNode( tXmlConfigNode *_parent, 
                                      int             _id    , 

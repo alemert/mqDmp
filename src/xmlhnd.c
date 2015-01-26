@@ -4,16 +4,18 @@
 /*                                                                            */
 /*   functions:                                                               */
 /*      - readXml                                                             */
-/*      - getXMLconfig                                                    */
-/*      - createConfigXmlNod  e                                  */
-/*      - createXmlNode                                            */
-/*      - getXmlCfgRoot                                              */
-/*      - getXmlRoot                                */
-/*      - findXmlCfgNodeFunc                  */
-/*      - openXmlTag                        */
-/*      - closeXmlTag                    */
-/*      - setXmlNode                    */
-/*                                    */
+/*      - getXml                                                              */
+/*      - createConfigXmlNode                                              */
+/*      - createXmlNode                                                       */
+/*      - getXmlCfgRoot                                                       */
+/*      - getXmlRoot                                                    */
+/*      - findXmlCfgNodeFunc                          */
+/*      - openXmlTag                                      */
+/*      - closeXmlTag                                        */
+/*      - setXmlNode                                */
+/*      - matchRegExp                    */
+/*      - parseXmlMem                    */
+/*                                          */
 /******************************************************************************/
 
 /******************************************************************************/
@@ -140,7 +142,7 @@ int readXml( const char* file, char** _xmlMem )
 /******************************************************************************/
 /*  get XML configuration                 */
 /******************************************************************************/
-int getXMLconfig( const char* file )
+int getXml( const char* file )
 {
   logFuncCall() ;                       
 
@@ -151,7 +153,7 @@ int getXMLconfig( const char* file )
   sysRc = readXml( file, &mem );
   if( sysRc != 0 ) goto _door;
 
-  setXmlNode ( getXmlRoot(), getXmlCfgRoot() ,mem );
+  setXmlNode ( NULL, getXmlCfgRoot() ,mem );
 
   _door:
 
@@ -308,7 +310,39 @@ const char* openXmlTag( tXmlConfigNode *node)
   logFuncCall() ;                       
   static char buffer[XML_TAG_LENGTH] ;
 
-  snprintf(buffer,XML_TAG_LENGTH,"<%s>",node->description);
+  switch( node->type )
+  {
+    case EMPTY:
+    {
+      snprintf( buffer, XML_TAG_LENGTH, "<%s>",node->description);
+      break;
+    }
+    case FILTER :
+    {
+      snprintf( buffer,
+                XML_TAG_LENGTH,
+                "<%s\\s*=\"(\\w+)\"\\s*>",
+                node->description);
+      break;
+    }
+    case STR :
+    {
+      snprintf( buffer,
+                XML_TAG_LENGTH,
+                "<%s\\s*=\"(\\d+)\"\\s*>",
+                node->description);
+      break;
+    }
+    case INT :
+    {
+      snprintf( buffer,
+                XML_TAG_LENGTH,
+                "%s\\s*=\\s*\\(d+)",
+                node->description);
+      break;
+    }
+    case NA: break;
+  }
 
   logFuncExit( ) ;
   return buffer ; 
@@ -331,46 +365,146 @@ const char* closeXmlTag( tXmlConfigNode *node)
 /******************************************************************************/
 /*  set XML node                                           */
 /******************************************************************************/
-tXmlNode* setXmlNode( tXmlNode *xml, tXmlConfigNode *cfg, char *mem )
+tXmlNode* setXmlNode( tXmlNode *parent, tXmlConfigNode *cfg, char *mem )
 {
   logFuncCall() ;                       
   int sysRc ;  
 
+  tXmlNode *node=NULL;
+  tXmlNode *p = NULL;
+
+  char *submem ;
+
   char       rxNat[4*XML_TAG_LENGTH];       // regular expression native
   regex_t    rxComp;                        // regular expression compiled
   regmatch_t rxMatch[3];                    // regular expression match array
+  char       rxErrBuf[100];                 // regular expression error buffer
                                             //
   const char* openTag  = openXmlTag(cfg);   //
   const char* closeTag = closeXmlTag(cfg);  //
-                                      //
+                                            //
   // -------------------------------------------------------
   // build up, compile and execute regular expression
   // -------------------------------------------------------
-  snprintf( rxNat           ,         //
-            4*XML_TAG_LENGTH,         //
-            "(%s.+%s)+"    ,         //
-            openTag         ,         //
-            closeTag       );         //
-
+  // alles falsch muss in schleife
+  switch( cfg->type )                      //
+  {                                         //
+    case EMPTY :                            //
+    {                                       //
+      snprintf( rxNat           ,           //
+                4*XML_TAG_LENGTH,           //
+                "%s[[:space:]]*(.+)[[:space:]]*%s",
+                openTag         ,           //
+                closeTag       );           //
+      break;                        //
+    }                                       //
+    case STR :                  //
+    {                          //
+      snprintf( rxNat, 4*XML_TAG_LENGTH,      //
+	       "%s"  , openTag        );      //
+      break;                    //
+    }                    //
+                                            //
+  }
   sysRc = regcomp( &rxComp, rxNat, REG_NOTBOL );
-  if( sysRc != 0 )                    //
-  {                        //
+  if( sysRc != 0 )                          //
+  {                                         //
     // logger
-    goto _door;        //
-  }                        //
-                   //
-  char* p = rxNat;
-  sysRc = regexec( &rxComp ,      // regular expression
-                    mem    ,      // string to analyze
-                    3      ,         // number of substrings to match
-                    rxMatch,     // matched strings
-                    0     );        // flags
-                                //
-  printf("%10.10s\n %10.10s\n %10.10s\n",(mem+rxMatch[0].rm_so),
-                                   (mem+rxMatch[1].rm_so),
-                                   (mem+rxMatch[2].rm_so));
+    goto _door;                             //
+  }                                         //
+                                            //
+#if(1)
+  char* q = rxNat;    
+#endif
+  sysRc = regexec( &rxComp ,            // regular expression
+                    mem    ,        // string to analyze
+                    3      ,           // number of substrings to match
+                    rxMatch,       // matched strings
+                    0     );          // flags
+//  regfree(&rxComp);
+  if( sysRc != 0 )                      //
+  {                            //
+    regerror(sysRc,&rxComp,rxErrBuf,100);  //
+    goto _door;              //
+  }                      //
+                      //
+  node = (tXmlNode*)malloc(sizeof(tXmlNode));  //
+                            //
+  node->id = cfg->id ;        //
+  node->next=NULL;        //
+  node->child=NULL;        //
+  node->parent=parent;        //
+  if( parent == NULL )        //
+  {                //
+    _gXmlRoot = node;      //
+  }          //
+  else        //
+  {          //
+    if( !parent->child )       //
+    {        //
+      parent->child = node;      //
+    }        //
+    else        //
+    {              //
+      p=parent->child ;      //
+      while( p->next )      //
+      {        //
+	p=p->next;      //
+      }        //
+      p->next = node;      //
+    }        //
+  }                //
+              //
+  switch( cfg->type)       //
+  {      //
+    case EMPTY:       //
+    {      //
+      submem=(char*)malloc( sizeof(char)*(rxMatch[1].rm_eo-rxMatch[1].rm_so));
+      memcpy(submem,(mem+rxMatch[1].rm_so),rxMatch[1].rm_eo-rxMatch[1].rm_so);
+      *(submem+rxMatch[1].rm_eo-rxMatch[1].rm_so)='\0';
+      setXmlNode(node,cfg->child,submem);
+      break;
+    }
+  }
+
+
   _door:
 
   logFuncExit( ) ;
-  return NULL ;
+  return node ;
+}
+
+/******************************************************************************/
+/*  match regular expression      */
+/******************************************************************************/
+int matchRegExp( char* _rxNat )
+{
+  logFuncCall() ;                       
+
+  int sysRc ;
+
+  regex_t    rxComp;                        // regular expression compiled
+
+  sysRc = regcomp( &rxComp, rxNat, REG_NOTBOL );
+  if( sysRc != 0 )                          //
+  {                                         //
+    // logger
+    goto _door;                             //
+  }                                         //
+
+  _door:
+
+  logFuncExit( ) ;
+  return sysRc ;
+}
+
+/******************************************************************************/
+/*  parse XML memory      */
+/******************************************************************************/
+tXmlType parseXmlMem( char* mem, tXmlConfigNode cfg)
+{
+  logFuncCall() ;                       
+
+  logFuncExit( ) ;
+  return NA ;
 }
