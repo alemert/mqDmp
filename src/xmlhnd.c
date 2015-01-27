@@ -67,6 +67,9 @@ tXmlNode* getXmlRoot();
 tXmlConfigNode* getXmlCfgRoot();
 const char* openXmlTag( tXmlConfigNode *node);
 const char* closeXmlTag( tXmlConfigNode *node);
+const regmatch_t* matchRegExp( char* _rxNat, const char* _mem );
+const regmatch_t* parseXmlMem( char* _mem,
+                               tXmlConfigNode *_cfg,tXmlType *_pRcType);
 
 /******************************************************************************/
 /*                                                                            */
@@ -377,12 +380,15 @@ tXmlNode* setXmlNode( tXmlNode *parent, tXmlConfigNode *cfg, char *mem )
 
   char       rxNat[4*XML_TAG_LENGTH];       // regular expression native
   regex_t    rxComp;                        // regular expression compiled
-  regmatch_t rxMatch[3];                    // regular expression match array
+  regmatch_t *pRxMatch;                     // regular expression match array
   char       rxErrBuf[100];                 // regular expression error buffer
                                             //
   const char* openTag  = openXmlTag(cfg);   //
   const char* closeTag = closeXmlTag(cfg);  //
-                                            //
+                  //
+  tXmlType nodeType = NA;      //
+                  //
+#if(0)
   // -------------------------------------------------------
   // build up, compile and execute regular expression
   // -------------------------------------------------------
@@ -391,11 +397,6 @@ tXmlNode* setXmlNode( tXmlNode *parent, tXmlConfigNode *cfg, char *mem )
   {                                         //
     case EMPTY :                            //
     {                                       //
-      snprintf( rxNat           ,           //
-                4*XML_TAG_LENGTH,           //
-                "%s[[:space:]]*(.+)[[:space:]]*%s",
-                openTag         ,           //
-                closeTag       );           //
       break;                        //
     }                                       //
     case STR :                  //
@@ -406,6 +407,8 @@ tXmlNode* setXmlNode( tXmlNode *parent, tXmlConfigNode *cfg, char *mem )
     }                    //
                                             //
   }
+
+  matchRegExp( rxNat, mem );
   sysRc = regcomp( &rxComp, rxNat, REG_NOTBOL );
   if( sysRc != 0 )                          //
   {                                         //
@@ -427,41 +430,49 @@ tXmlNode* setXmlNode( tXmlNode *parent, tXmlConfigNode *cfg, char *mem )
     regerror(sysRc,&rxComp,rxErrBuf,100);  //
     goto _door;              //
   }                      //
-                      //
-  node = (tXmlNode*)malloc(sizeof(tXmlNode));  //
-                            //
-  node->id = cfg->id ;        //
-  node->next=NULL;        //
-  node->child=NULL;        //
-  node->parent=parent;        //
-  if( parent == NULL )        //
-  {                //
-    _gXmlRoot = node;      //
-  }          //
-  else        //
-  {          //
-    if( !parent->child )       //
-    {        //
-      parent->child = node;      //
-    }        //
-    else        //
-    {              //
-      p=parent->child ;      //
-      while( p->next )      //
-      {        //
-	p=p->next;      //
-      }        //
-      p->next = node;      //
-    }        //
-  }                //
-              //
-  switch( cfg->type)       //
-  {      //
-    case EMPTY:       //
-    {      //
-      submem=(char*)malloc( sizeof(char)*(rxMatch[1].rm_eo-rxMatch[1].rm_so));
-      memcpy(submem,(mem+rxMatch[1].rm_so),rxMatch[1].rm_eo-rxMatch[1].rm_so);
-      *(submem+rxMatch[1].rm_eo-rxMatch[1].rm_so)='\0';
+#endif
+                                  //
+  pRxMatch = parseXmlMem( mem, cfg, &nodeType);   //
+  if( nodeType == NA )      //
+  {            //
+    node = NULL;      //
+    goto _door;      //
+  }        //
+            //
+  node = (tXmlNode*)malloc(sizeof(tXmlNode));
+                                      //
+  node->id = cfg->id;                 //
+  node->next=NULL;                    //
+  node->child=NULL;                   //
+  node->parent=parent;                //
+  if( parent == NULL )                //
+  {                                   //
+    _gXmlRoot = node;                 //
+  }                                   //
+  else                                //
+  {                                   //
+    if( !parent->child )              //
+    {                                 //
+      parent->child = node;           //
+    }                                 //
+    else                              //
+    {                                 //
+      p=parent->child;                //
+      while( p->next )                //
+      {                               //
+        p=p->next;                    //
+      }                               //
+      p->next = node;                 //
+    }                                 //
+  }                                   //
+                                      //
+  switch( cfg->type)                  //
+  {                                   //
+    case EMPTY:                       //
+    {                                 //
+      submem=(char*)malloc( sizeof(char)*(pRxMatch[1].rm_eo-pRxMatch[1].rm_so));
+      memcpy(submem,(mem+pRxMatch[1].rm_so),pRxMatch[1].rm_eo-pRxMatch[1].rm_so);
+      *(submem+pRxMatch[1].rm_eo-pRxMatch[1].rm_so)='\0';
       setXmlNode(node,cfg->child,submem);
       break;
     }
@@ -475,36 +486,123 @@ tXmlNode* setXmlNode( tXmlNode *parent, tXmlConfigNode *cfg, char *mem )
 }
 
 /******************************************************************************/
-/*  match regular expression      */
+/*  match regular expression                                                  */
 /******************************************************************************/
-int matchRegExp( char* _rxNat )
+const regmatch_t* matchRegExp( char* _rxNat, const char* _mem )
 {
   logFuncCall() ;                       
 
   int sysRc ;
 
+  #define RX_ERR_BUFF_LNG 100
+  #define RX_MATCH_LNG     16
+  char rxErrBuff[RX_ERR_BUFF_LNG];
   regex_t    rxComp;                        // regular expression compiled
-
-  sysRc = regcomp( &rxComp, rxNat, REG_NOTBOL );
-  if( sysRc != 0 )                          //
+  static regmatch_t rxMatch[RX_MATCH_LNG];  // regular expression match array
+                                            //
+  sysRc = regcomp( &rxComp, _rxNat, REG_NOTBOL );
+  if( sysRc != 0 )                          // compile regular expression
   {                                         //
-    // logger
+    logger(LSTD_XML_REGEX_CC_ERR, _rxNat ); //
     goto _door;                             //
   }                                         //
-
+                                            //
+  sysRc = regexec( &rxComp      ,           // regular expression
+                    _mem        ,           // string to analyze
+                    RX_MATCH_LNG,           // number of substrings to match
+                    rxMatch     ,           // matched strings
+                    0          );           // flags
+  if( sysRc != 0 )                          //
+  {                                         //
+    regerror(sysRc,&rxComp,rxErrBuff,RX_ERR_BUFF_LNG);  
+    goto _door;                             //
+  }                                         //
+                                            //
   _door:
 
+  regfree(&rxComp);      //
   logFuncExit( ) ;
-  return sysRc ;
+  if( sysRc == 0 ) return rxMatch ;
+  return NULL;
 }
 
 /******************************************************************************/
-/*  parse XML memory      */
+/*  parse XML memory                                                          */
+/*                                                                            */
+/*  description:                                                              */
+/*    This function tries to match some regular expressions.               */
+/*    A node type depends on which expression matches.                  */
+/*    Finally function checks if this type is allowed on this node-tree depth */
+/*    and returns the type                                                    */
+/*    Type NA will be returned if function fails to match the regular         */
+/*    expression                             */
+/*                                                                            */
 /******************************************************************************/
-tXmlType parseXmlMem( char* mem, tXmlConfigNode cfg)
+const regmatch_t* parseXmlMem( char* _mem          , 
+                               tXmlConfigNode *_cfg, 
+                               tXmlType *_pRcType  )
 {
   logFuncCall() ;                       
 
-  logFuncExit( ) ;
-  return NA ;
+  char rxNat[4*XML_TAG_LENGTH];              // regular expression native
+  regmatch_t* pRxMatch;            //
+                                        //
+#if(0)
+  const char* openTag  = openXmlTag(cfg);   //
+  const char* closeTag = closeXmlTag(cfg);  //
+#endif
+                                        //
+  *_pRcType = NA;                      //
+  tXmlConfigNode *pCfg = _cfg;            //
+                                //
+  while( pCfg )      //
+  {      //
+    switch( pCfg->type )      //
+    {      //
+      // ---------------------------------------------------
+      // try to match empty tag: <tag> ... </tag>
+      // ---------------------------------------------------
+      case EMPTY:      //
+      {            //
+      snprintf( rxNat,      //
+	       4*XML_TAG_LENGTH,      //
+	       "<%s>[[:space:]]*(.+)[[:space:]]*</%s>",
+	       pCfg->description,       //
+	       pCfg->description );      //
+                                                 //
+        pRxMatch = matchRegExp( rxNat, _mem );   // try to match regular expression
+                                            //
+        if( pRxMatch != NULL )        //
+        {                                    //
+          *_pRcType = pCfg->type;        //
+          goto _door;              //
+        }                                      //
+	break;        //
+      }                                        //
+                                                //
+      // ---------------------------------------------------
+      // try to match key / value: key=value
+      // ---------------------------------------------------
+      case STR:        //
+      {              //
+        snprintf( rxNat, 4*XML_TAG_LENGTH,       //
+                "%s\\s*=\\s*\\(\\S+)",      //
+		 pCfg->description);      //
+        //
+        pRxMatch = matchRegExp( rxNat, _mem );   // try to match regular expression
+        //
+        if( pRxMatch != NULL )        //
+	{      //
+          *_pRcType = pCfg->type;        //
+          goto _door;              //
+	}      //
+	break;      //
+      }      //
+    }      //
+    pCfg = pCfg->next;      //
+  }        //
+              //
+  _door:              //
+  logFuncExit( ) ;        //
+  return pRxMatch;            //
 }
