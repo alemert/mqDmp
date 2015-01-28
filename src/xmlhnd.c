@@ -320,6 +320,7 @@ const char* openXmlTag( tXmlConfigNode *node)
       snprintf( buffer, XML_TAG_LENGTH, "<%s>",node->description);
       break;
     }
+#if(0)
     case FILTER :
     {
       snprintf( buffer,
@@ -328,6 +329,7 @@ const char* openXmlTag( tXmlConfigNode *node)
                 node->description);
       break;
     }
+#endif
     case STR :
     {
       snprintf( buffer,
@@ -380,12 +382,10 @@ tXmlNode* setXmlNode( tXmlNode *parent, tXmlConfigNode *cfg, char *mem )
 
   char       rxNat[4*XML_TAG_LENGTH];       // regular expression native
   regex_t    rxComp;                        // regular expression compiled
-  regmatch_t *pRxMatch;                     // regular expression match array
+  const regmatch_t *pRxMatch;               // regular expression match array
   char       rxErrBuf[100];                 // regular expression error buffer
                                             //
-  const char* openTag  = openXmlTag(cfg);   //
-  const char* closeTag = closeXmlTag(cfg);  //
-                  //
+                        //
   tXmlType nodeType = NA;      //
                   //
 #if(0)
@@ -476,6 +476,7 @@ tXmlNode* setXmlNode( tXmlNode *parent, tXmlConfigNode *cfg, char *mem )
       setXmlNode(node,cfg->child,submem);
       break;
     }
+    case NA: break;
   }
 
 
@@ -544,65 +545,80 @@ const regmatch_t* parseXmlMem( char* _mem          ,
 {
   logFuncCall() ;                       
 
-  char rxNat[4*XML_TAG_LENGTH];              // regular expression native
+  char rxNat[4*XML_TAG_LENGTH];    // regular expression native
   regmatch_t* pRxMatch;            //
-                                        //
-#if(0)
-  const char* openTag  = openXmlTag(cfg);   //
-  const char* closeTag = closeXmlTag(cfg);  //
-#endif
-                                        //
-  *_pRcType = NA;                      //
-  tXmlConfigNode *pCfg = _cfg;            //
-                                //
-  while( pCfg )      //
-  {      //
-    switch( pCfg->type )      //
-    {      //
+                                   //
+  *_pRcType = NA;                  //
+  tXmlConfigNode *pCfg = _cfg;     //
+                                   //
+  while( pCfg )                    //
+  {                                //
+    switch( pCfg->type )           //
+    {                              //
       // ---------------------------------------------------
       // try to match empty tag: <tag> ... </tag>
       // ---------------------------------------------------
-      case EMPTY:      //
-      {            //
-      snprintf( rxNat,      //
-	       4*XML_TAG_LENGTH,      //
-	       "<%s>[[:space:]]*(.+)[[:space:]]*</%s>",
-	       pCfg->description,       //
-	       pCfg->description );      //
+      case EMPTY:                                //
+      {                                          //
+        snprintf( rxNat             ,            //
+                  4*XML_TAG_LENGTH  ,            //
+                  "<%s>[[:space:]]*(.+)[[:space:]]*</%s>",
+                  pCfg->description ,            //
+                  pCfg->description);            //
                                                  //
         pRxMatch = matchRegExp( rxNat, _mem );   // try to match regular expression
-                                            //
-        if( pRxMatch != NULL )        //
-        {                                    //
-          *_pRcType = pCfg->type;        //
-          goto _door;              //
-        }                                      //
-	break;        //
-      }                                        //
-                                                //
+                                                 //
+        if( pRxMatch != NULL )                   //
+        {                                        //
+          *_pRcType = pCfg->type;                //
+          goto _door;                            //
+        }                                        //
+        break;                                   //
+      }                                          //
+                                                 //
       // ---------------------------------------------------
       // try to match key / value: key=value
       // ---------------------------------------------------
-      case STR:        //
-      {              //
+      case STR:                                  //
+      {                                          //
         snprintf( rxNat, 4*XML_TAG_LENGTH,       //
-                "%s\\s*=\\s*\\(\\S+)",      //
-		 pCfg->description);      //
-        //
+                "%s\\s*=\\s*(\\S+)",             //
+		 pCfg->description);             //
+                                                 //
         pRxMatch = matchRegExp( rxNat, _mem );   // try to match regular expression
-        //
-        if( pRxMatch != NULL )        //
-	{      //
-          *_pRcType = pCfg->type;        //
-          goto _door;              //
-	}      //
-	break;      //
-      }      //
-    }      //
-    pCfg = pCfg->next;      //
-  }        //
-              //
-  _door:              //
-  logFuncExit( ) ;        //
-  return pRxMatch;            //
+                                                 //
+        if( pRxMatch != NULL )                   //
+        {                                        //
+          *_pRcType = pCfg->type;                //
+          goto _door;                            //
+        }                                        //
+        break;                                   //
+      }                                          //
+                                                 //
+      // ---------------------------------------------------
+      // try to match key / value: key=value
+      // ---------------------------------------------------
+      case INT:                                  //
+      {                                          //
+        snprintf( rxNat, 4*XML_TAG_LENGTH,       //
+                "%s[[:space:]]*=[[:space:]]*([[:digit:]]+)",   
+		 pCfg->description);             //
+                                                 //
+        pRxMatch = matchRegExp( rxNat, _mem );   // try to match regular expression
+                                                 //
+        if( pRxMatch != NULL )                   //
+        {                                        //
+          *_pRcType = pCfg->type;                //
+          goto _door;                      //
+        }                                    //
+        break;                                //
+      }                                //
+    }                                          //
+                                                //
+    pCfg = pCfg->next;            //
+  }                                          //
+                                                //
+  _door:                          //
+  logFuncExit( ) ;            //
+  return pRxMatch;                  //
 }

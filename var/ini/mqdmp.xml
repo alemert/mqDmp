@@ -4,8 +4,12 @@
   </general>
 
   <allqmgr>
-    <qmgr name="OMEGA">
-      disable = yes
+    <qmgr>
+      name = ALFA
+    </qmgr> 
+    <qmgr>
+      name = OMEGA
+      disable = no
     </qmgr> 
   </allqmgr>
 </root>

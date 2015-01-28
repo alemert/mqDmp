@@ -16,18 +16,18 @@
 /******************************************************************************/
 /*   D E F I N E S                                                            */
 /******************************************************************************/
-#define XML_NO_ID      -1 
+#define XML_NO_ID       0 
 
-#define XML_ROOT_ID     0
+#define XML_ROOT_ID     (-1) 
 #define XML_ROOT_DSCR   "root"
 
-#define XML_GEN_ID     10
+#define XML_GEN_ID    (-10)
 #define XML_GEN_DSCR   "general"
 
-#define XML_MQ_ALL_QMGR_ID   100
+#define XML_MQ_ALL_QMGR_ID   (-100)
 #define XML_MQ_ALL_QMGR_DSCR "allqmgr"
 
-#define XML_MQ_QMGR_ID   101
+#define XML_MQ_QMGR_ID   -101
 #define XML_MQ_QMGR_DSCR "qmgr"
 
 #define def2str( str) #str 
@@ -60,7 +60,7 @@ enum eXmlType
 { 
   NA    ,       // not available
   EMPTY ,       // empty parent node
-  FILTER,       // parent node with string filter 
+//FILTER,       // parent node with string filter 
   STR   ,       // child node with string value
   INT           // child node with integer value
 };

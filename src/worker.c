@@ -166,9 +166,14 @@ int setupXmlConfig()
   logFuncCall() ;                       
 
 //  tXmlConfigNode *node; 
-  
-  if( !createConfigXmlNode( NULL         , 
-                            XML_ROOT_ID  , XML_ROOT_DSCR, 
+#define newXmlRule( parent, _id, type, app ) \
+        createConfigXmlNode( parent, _id##_ID, _id##_DSCR, type, app )
+ 
+#if(1)
+  if(!newXmlRule(NULL, XML_ROOT,EMPTY,OBLIGATORY)) {sysRc=1; goto _door;}
+  if(!newXmlRule(getXmlCfgRoot(),XML_GEN,EMPTY,OBLIGATORY)) {sysRc=1; goto _door;}
+#else
+  if( !createConfigXmlNode( NULL         , XML_ROOT_ID  , XML_ROOT_DSCR, 
                             EMPTY        , 
                             OBLIGATORY ) ) { sysRc=1; goto _door;}
 
@@ -176,9 +181,9 @@ int setupXmlConfig()
                             XML_GEN_ID, XML_GEN_DSCR,
                             EMPTY        , 
                             OBLIGATORY  ) ) { sysRc=1; goto _door;}
+#endif
 
-  if( !createConfigXmlNode( findXmlCfgNode( XML_ROOT_ID,
-                                            XML_GEN_ID ),
+  if( !createConfigXmlNode( findXmlCfgNode( XML_ROOT_ID, XML_GEN_ID ),
                             MQIA_TRIGGER_CONTROL, def2str(MQIA_TRIGGER_CONTROL),
                             INT        , 
                             OBLIGATORY  ) ) { sysRc=1; goto _door;}
@@ -188,11 +193,10 @@ int setupXmlConfig()
                             EMPTY          , 
                             OBLIGATORY   ) ) { sysRc=1; goto _door;}
 
-  if( !createConfigXmlNode( findXmlCfgNode( XML_ROOT_ID  ,
-                                            XML_MQ_ALL_QMGR_ID),
-                            XML_MQ_QMGR_ID , XML_MQ_QMGR_DSCR,
-                            FILTER         , 
-                            OBLIGATORY   ) ) { sysRc=1; goto _door;}
+  if( !createConfigXmlNode( findXmlCfgNode( XML_ROOT_ID  , XML_MQ_ALL_QMGR_ID),
+                            XML_MQ_QMGR_ID, XML_MQ_QMGR_DSCR,
+                            EMPTY         , 
+                            OBLIGATORY   )) { sysRc=1; goto _door;}
 
 #if(0)
   if( !createConfigXmlNode( findXmlCfgNode( XML_ROOT_ID    , 
