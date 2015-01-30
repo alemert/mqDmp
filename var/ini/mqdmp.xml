@@ -9,7 +9,7 @@
     </qmgr> 
     <qmgr>
       name = OMEGA
-      disable = no
+      enabled = no
     </qmgr> 
   </allqmgr>
 </root>

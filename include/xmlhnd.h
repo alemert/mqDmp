@@ -17,20 +17,57 @@
 /*   D E F I N E S                                                            */
 /******************************************************************************/
 #define XML_NO_ID       0 
+#define XML_NO_ID_DSCR  ""
 
-#define XML_ROOT_ID     (-1) 
+#define XML_ROOT        (-1) 
 #define XML_ROOT_DSCR   "root"
 
-#define XML_GEN_ID    (-10)
+#define XML_GEN       (-10)
 #define XML_GEN_DSCR   "general"
 
-#define XML_MQ_ALL_QMGR_ID   (-100)
+#define XML_NAME       (-11)
+#define XML_NAME_DSCR   "name"
+
+#define XML_ENABLED          (-21)
+#define XML_ENABLED_DSCR     "enable"
+
+#define XML_MQ_ALL_QMGR      (-100)
 #define XML_MQ_ALL_QMGR_DSCR "allqmgr"
 
-#define XML_MQ_QMGR_ID   -101
+#define XML_MQ_QMGR      -101
 #define XML_MQ_QMGR_DSCR "qmgr"
 
-#define def2str( str) #str 
+#define MQIA_TRIGGER_CONTROL_DSCR   ""
+
+// #define def2str( str ) #str 
+
+#if 1
+#define newXmlRule( _parent, _id, _type, _app )                             \
+        ({                                                                  \
+	  tXmlConfigNode *__rcCN;                                           \
+          if( _id < 1  )                                                    \
+            __rcCN=createConfigXmlNode(_parent,_id,_id##_DSCR,_type,_app ); \
+          else                                                              \
+            __rcCN=createConfigXmlNode(_parent,_id,#_id      ,_type,_app ); \
+          __rcCN;                                                           \
+        })
+#endif
+
+#if 0
+#define newXmlRule( _parent, _id, _type, _app )                            \
+        ({                                                                 \
+	  tXmlConfigNode *__rcCN;                                          \
+          __rcCN=createConfigXmlNode(_parent,_id,_id##_DSCR,_type,_app );  \
+          __rcCN;                                                          \
+        })
+#define newXmlRule( _parent, _id, _type, _app )                            \
+        ({                                                                 \
+	  tXmlConfigNode *__rcCN;                                          \
+          __rcCN=createConfigXmlNode(_parent,_id,_id##_DSCR,_type,_app );  \
+          __rcCN;                                                          \
+        })
+#endif
+
 
 /******************************************************************************/
 /*   T Y P E S                                                                */

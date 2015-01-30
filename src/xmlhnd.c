@@ -261,11 +261,16 @@ tXmlNode* createXmlNode()
 /******************************************************************************/
 tXmlConfigNode* getXmlCfgRoot()
 {
+  if( !_gXmlCfgRoot )
+    logger( LSTD_XML_NO_ROOT_NODE, "Config");
   return _gXmlCfgRoot ;
 }
 
 tXmlNode* getXmlRoot()
 {
+  if( !_gXmlRoot )
+    logger( LSTD_XML_NO_ROOT_NODE, "Data");
+
   return _gXmlRoot ;
 }
 
@@ -370,113 +375,96 @@ const char* closeXmlTag( tXmlConfigNode *node)
 /******************************************************************************/
 /*  set XML node                                           */
 /******************************************************************************/
-tXmlNode* setXmlNode( tXmlNode *parent, tXmlConfigNode *cfg, char *mem )
+tXmlNode* setXmlNode( tXmlNode *_parent, tXmlConfigNode *_cfg, char *_mem )
 {
   logFuncCall() ;                       
-  int sysRc ;  
 
   tXmlNode *node=NULL;
-  tXmlNode *p = NULL;
+  tXmlNode *pXml = NULL;
+  tXmlConfigNode *pCfg = _cfg;
+  int iVal;
+  char iStr[32];
 
   char *submem ;
 
-  char       rxNat[4*XML_TAG_LENGTH];       // regular expression native
-  regex_t    rxComp;                        // regular expression compiled
   const regmatch_t *pRxMatch;               // regular expression match array
-  char       rxErrBuf[100];                 // regular expression error buffer
-                                            //
                         //
   tXmlType nodeType = NA;      //
                   //
-#if(0)
-  // -------------------------------------------------------
-  // build up, compile and execute regular expression
-  // -------------------------------------------------------
-  // alles falsch muss in schleife
-  switch( cfg->type )                      //
-  {                                         //
-    case EMPTY :                            //
-    {                                       //
-      break;                        //
-    }                                       //
-    case STR :                  //
-    {                          //
-      snprintf( rxNat, 4*XML_TAG_LENGTH,      //
-	       "%s"  , openTag        );      //
-      break;                    //
-    }                    //
-                                            //
-  }
-
-  matchRegExp( rxNat, mem );
-  sysRc = regcomp( &rxComp, rxNat, REG_NOTBOL );
-  if( sysRc != 0 )                          //
-  {                                         //
-    // logger
-    goto _door;                             //
-  }                                         //
-                                            //
-#if(1)
-  char* q = rxNat;    
-#endif
-  sysRc = regexec( &rxComp ,            // regular expression
-                    mem    ,        // string to analyze
-                    3      ,           // number of substrings to match
-                    rxMatch,       // matched strings
-                    0     );          // flags
-//  regfree(&rxComp);
-  if( sysRc != 0 )                      //
-  {                            //
-    regerror(sysRc,&rxComp,rxErrBuf,100);  //
-    goto _door;              //
-  }                      //
-#endif
                                   //
-  pRxMatch = parseXmlMem( mem, cfg, &nodeType);   //
-  if( nodeType == NA )      //
-  {            //
-    node = NULL;      //
-    goto _door;      //
-  }        //
-            //
-  node = (tXmlNode*)malloc(sizeof(tXmlNode));
-                                      //
-  node->id = cfg->id;                 //
-  node->next=NULL;                    //
-  node->child=NULL;                   //
-  node->parent=parent;                //
-  if( parent == NULL )                //
-  {                                   //
-    _gXmlRoot = node;                 //
-  }                                   //
-  else                                //
-  {                                   //
-    if( !parent->child )              //
-    {                                 //
-      parent->child = node;           //
-    }                                 //
-    else                              //
-    {                                 //
-      p=parent->child;                //
-      while( p->next )                //
-      {                               //
-        p=p->next;                    //
-      }                               //
-      p->next = node;                 //
-    }                                 //
-  }                                   //
-                                      //
-  switch( cfg->type)                  //
-  {                                   //
-    case EMPTY:                       //
-    {                                 //
-      submem=(char*)malloc( sizeof(char)*(pRxMatch[1].rm_eo-pRxMatch[1].rm_so));
-      memcpy(submem,(mem+pRxMatch[1].rm_so),pRxMatch[1].rm_eo-pRxMatch[1].rm_so);
-      *(submem+pRxMatch[1].rm_eo-pRxMatch[1].rm_so)='\0';
-      setXmlNode(node,cfg->child,submem);
-      break;
+  while(pCfg)
+  {
+    pRxMatch = parseXmlMem( _mem, pCfg, &nodeType);   //
+    if( nodeType == NA )      //
+    {                  //
+      node = NULL;      //
+      goto _door;      //
+    }            //
+                    //
+    node = (tXmlNode*)malloc(sizeof(tXmlNode));
+                                          //
+    node->id = pCfg->id;                     //
+    node->next=NULL;                        //
+    node->child=NULL;                       //
+    node->parent=_parent;                    //
+    if( _parent == NULL )                    //
+    {                                       //
+      _gXmlRoot = node;                     //
+    }                                       //
+    else                                    //
+    {                                       //
+      if( !_parent->child )                  //
+      {                                     //
+        _parent->child = node;               //
+      }                                     //
+      else                                  //
+      {                                     //
+        pXml=_parent->child;                    //
+        while( pXml->next )                    //
+        {                                   //
+          pXml=pXml->next;                        //
+        }                                   //
+        pXml->next = node;                     //
+      }                                     //
+    }                                       //
+                                          //
+    switch( pCfg->type)                      //
+    {                                       //
+      case EMPTY:                           //
+      {                                     //
+        submem=(char*)malloc(sizeof(char)*(pRxMatch[1].rm_eo-pRxMatch[1].rm_so));
+        memcpy(submem,(_mem+pRxMatch[1].rm_so),pRxMatch[1].rm_eo-pRxMatch[1].rm_so);
+        *(submem+pRxMatch[1].rm_eo-pRxMatch[1].rm_so)='\0';
+        setXmlNode(node,pCfg->child,submem);
+        break;
+      }
+      case STR: 
+      {
+        break;
+      }
+      case INT: 
+      {
+        memcpy(iStr,(_mem+pRxMatch[1].rm_so),pRxMatch[1].rm_eo-pRxMatch[1].rm_so);
+        *(iStr+pRxMatch[1].rm_eo-pRxMatch[1].rm_so)='\0';
+        iVal=(int)strtol(iStr,NULL,10);
+	switch( errno )
+        {
+          case EINVAL:
+          case ERANGE:
+	  {
+            free(node);
+            node=NULL;
+	 //   logger();
+            goto _door;
+	  }
+          default :break;
+        }
+        node->vara.iVal = iVal;
+        break;
+      }
+      case NA: break;
     }
-    case NA: break;
+    pCfg = pCfg->next;
   }
 
 
@@ -546,7 +534,7 @@ const regmatch_t* parseXmlMem( char* _mem          ,
   logFuncCall() ;                       
 
   char rxNat[4*XML_TAG_LENGTH];    // regular expression native
-  regmatch_t* pRxMatch;            //
+  const regmatch_t* pRxMatch;      //
                                    //
   *_pRcType = NA;                  //
   tXmlConfigNode *pCfg = _cfg;     //
@@ -610,15 +598,22 @@ const regmatch_t* parseXmlMem( char* _mem          ,
         {                                        //
           *_pRcType = pCfg->type;                //
           goto _door;                      //
-        }                                    //
-        break;                                //
-      }                                //
-    }                                          //
-                                                //
-    pCfg = pCfg->next;            //
-  }                                          //
-                                                //
-  _door:                          //
-  logFuncExit( ) ;            //
-  return pRxMatch;                  //
+        }                                        //
+        break;                                   //
+      }                                    //
+      // ---------------------------------------------------
+      // should never come up 
+      // ---------------------------------------------------
+      case NA:        //
+      {                //
+	break;              //
+      }                      //
+    }                                            //
+                                                 //
+    pCfg = pCfg->next;                           //
+  }                                              //
+                                                 //
+  _door:               
+  logFuncExit( ) ;    
+  return pRxMatch;   
 }

@@ -52,7 +52,7 @@
 /******************************************************************************/
 /*   P R O T O T Y P E S                                                      */
 /******************************************************************************/
-int setupXmlConfig();
+tXmlConfigNode* setupXmlConfig();
 
 /******************************************************************************/
 /*                                                                            */
@@ -126,7 +126,10 @@ int worker()
     goto _door;                           //
   }                                       //
                                           //
-  setupXmlConfig();                       // setup XML rules
+  if( !setupXmlConfig() )                 // setup XML rules
+  {                                       //
+    goto _door;                           //
+  }                                       //
                                           //
   if( getXml( getStrAttr("ini") ) != 0 )  //
   {                                       //
@@ -157,57 +160,57 @@ int worker()
 }
 
 /******************************************************************************/
-/* setup XML Configuration                        */
+/* setup XML Configuration                                                    */
 /******************************************************************************/
-int setupXmlConfig()
+tXmlConfigNode* setupXmlConfig()
 {
-  int sysRc = 0;
-
   logFuncCall() ;                       
+  tXmlConfigNode *rcNode ;
+  tXmlConfigNode *parent ;
 
-//  tXmlConfigNode *node; 
-#define newXmlRule( parent, _id, type, app ) \
-        createConfigXmlNode( parent, _id##_ID, _id##_DSCR, type, app )
- 
-#if(1)
-  if(!newXmlRule(NULL, XML_ROOT,EMPTY,OBLIGATORY)) {sysRc=1; goto _door;}
-  if(!newXmlRule(getXmlCfgRoot(),XML_GEN,EMPTY,OBLIGATORY)) {sysRc=1; goto _door;}
-#else
-  if( !createConfigXmlNode( NULL         , XML_ROOT_ID  , XML_ROOT_DSCR, 
-                            EMPTY        , 
-                            OBLIGATORY ) ) { sysRc=1; goto _door;}
-
-  if( !createConfigXmlNode( getXmlCfgRoot(), 
-                            XML_GEN_ID, XML_GEN_DSCR,
-                            EMPTY        , 
-                            OBLIGATORY  ) ) { sysRc=1; goto _door;}
-#endif
-
-  if( !createConfigXmlNode( findXmlCfgNode( XML_ROOT_ID, XML_GEN_ID ),
-                            MQIA_TRIGGER_CONTROL, def2str(MQIA_TRIGGER_CONTROL),
-                            INT        , 
-                            OBLIGATORY  ) ) { sysRc=1; goto _door;}
-
-  if( !createConfigXmlNode( getXmlCfgRoot(), 
-                            XML_MQ_ALL_QMGR_ID , XML_MQ_ALL_QMGR_DSCR,
-                            EMPTY          , 
-                            OBLIGATORY   ) ) { sysRc=1; goto _door;}
-
-  if( !createConfigXmlNode( findXmlCfgNode( XML_ROOT_ID  , XML_MQ_ALL_QMGR_ID),
-                            XML_MQ_QMGR_ID, XML_MQ_QMGR_DSCR,
-                            EMPTY         , 
-                            OBLIGATORY   )) { sysRc=1; goto _door;}
-
-#if(0)
-  if( !createConfigXmlNode( findXmlCfgNode( XML_ROOT_ID    , 
-                                            XML_MQ_QMGR_ID ,
-                                            XML_MQ_QMGR_ID),
-                            XML_NAME_ID, XML_NAME_DSCR,
-                            STR        , 
-                            OBLIGATORY   ) ) { sysRc=1; goto _door;}
-#endif
+  if( !(rcNode=newXmlRule(NULL,XML_ROOT,EMPTY,OBLIGATORY)) ) 
+  {                //  setup root of the tree
+    goto _door;    //
+  }                //
+                   //
+  if( !(rcNode=newXmlRule(getXmlCfgRoot(),XML_GEN,EMPTY,OBLIGATORY)) ) 
+  {                //  root:general
+    goto _door;    //
+  }                //
+                   //
+  if( !(rcNode=newXmlRule(rcNode,MQIA_TRIGGER_CONTROL,INT,OBLIGATORY))) 
+  {                //  root:general:mqia_trigger_control
+    goto _door;    //
+  }                //
+                   //
+  if( !(rcNode=newXmlRule(getXmlCfgRoot(),XML_MQ_ALL_QMGR,EMPTY,OBLIGATORY)) ) 
+  {                //  root:allqmgr
+    goto _door;    //
+  }                //
+                   //
+  if( !(rcNode=newXmlRule(rcNode,XML_MQ_QMGR,EMPTY,OBLIGATORY)) ) 
+  {                //  root:allqmgr:qmgr
+    goto _door;    //
+  }                //
+  parent = rcNode; //
+                   //
+  if( !(rcNode=newXmlRule(parent,XML_NAME,EMPTY,OBLIGATORY)) ) 
+  {                //  root:allqmgr:qmgr:name
+    goto _door;    //
+  }                //
+                   //
+  if( !(rcNode=newXmlRule(parent,XML_NAME,EMPTY,OBLIGATORY)) ) 
+  {                //  root:allqmgr:qmgr:name
+    goto _door;    //
+  }                //
+                   //
+  if( !(rcNode=newXmlRule(parent,XML_NAME,EMPTY,OBLIGATORY)) ) 
+  {                //  root:allqmgr:qmgr:enable
+    goto _door;    //
+  }                //
+                   //
   _door:
 
   logFuncExit( ) ;
-  return sysRc;
+  return rcNode;
 }
