@@ -41,7 +41,7 @@
 // ---------------------------------------------------------
 // local
 // ---------------------------------------------------------
-#include <xmlhnd.h>
+#include "xmlhnd.h"
 
 /******************************************************************************/
 /*   G L O B A L S                                                            */
@@ -244,7 +244,7 @@ tXmlNode* createXmlNode()
   }                                             //
                                                 //
   node->id        = XML_NO_ID;                  //
-  node->type      = NA;                         //
+  node->type      = eNA;                         //
   node->vara.iVal = 0;                          //
   node->parent    = NULL;                       //
   node->child     = NULL;                       //
@@ -320,7 +320,7 @@ const char* openXmlTag( tXmlConfigNode *node)
 
   switch( node->type )
   {
-    case EMPTY:
+    case eEMPTY:
     {
       snprintf( buffer, XML_TAG_LENGTH, "<%s>",node->description);
       break;
@@ -335,7 +335,7 @@ const char* openXmlTag( tXmlConfigNode *node)
       break;
     }
 #endif
-    case STR :
+    case eSTRING :
     {
       snprintf( buffer,
                 XML_TAG_LENGTH,
@@ -343,7 +343,7 @@ const char* openXmlTag( tXmlConfigNode *node)
                 node->description);
       break;
     }
-    case INT :
+    case eINT :
     {
       snprintf( buffer,
                 XML_TAG_LENGTH,
@@ -351,7 +351,7 @@ const char* openXmlTag( tXmlConfigNode *node)
                 node->description);
       break;
     }
-    case NA: break;
+    case eNA: break;
   }
 
   logFuncExit( ) ;
@@ -384,18 +384,19 @@ tXmlNode* setXmlNode( tXmlNode *_parent, tXmlConfigNode *_cfg, char *_mem )
   tXmlConfigNode *pCfg = _cfg;
   int iVal;
   char iStr[32];
+  char *sStr ;
 
   char *submem ;
 
   const regmatch_t *pRxMatch;               // regular expression match array
                         //
-  tXmlType nodeType = NA;      //
+  tXmlType nodeType = eNA;      //
                   //
                                   //
   while(pCfg)
   {
     pRxMatch = parseXmlMem( _mem, pCfg, &nodeType);   //
-    if( nodeType == NA )      //
+    if( nodeType == eNA )      //
     {                  //
       node = NULL;      //
       goto _door;      //
@@ -430,7 +431,7 @@ tXmlNode* setXmlNode( tXmlNode *_parent, tXmlConfigNode *_cfg, char *_mem )
                                           //
     switch( pCfg->type)                      //
     {                                       //
-      case EMPTY:                           //
+      case eEMPTY:                           //
       {                                     //
         submem=(char*)malloc(sizeof(char)*(pRxMatch[1].rm_eo-pRxMatch[1].rm_so));
         memcpy(submem,(_mem+pRxMatch[1].rm_so),pRxMatch[1].rm_eo-pRxMatch[1].rm_so);
@@ -438,11 +439,13 @@ tXmlNode* setXmlNode( tXmlNode *_parent, tXmlConfigNode *_cfg, char *_mem )
         setXmlNode(node,pCfg->child,submem);
         break;
       }
-      case STR: 
+      case eSTRING: 
       {
+	sStr = (char*) malloc( 200 );
+        memcpy(sStr,(_mem+pRxMatch[1].rm_so),pRxMatch[1].rm_eo-pRxMatch[1].rm_so);
         break;
       }
-      case INT: 
+      case eINT: 
       {
         memcpy(iStr,(_mem+pRxMatch[1].rm_so),pRxMatch[1].rm_eo-pRxMatch[1].rm_so);
         *(iStr+pRxMatch[1].rm_eo-pRxMatch[1].rm_so)='\0';
@@ -462,7 +465,7 @@ tXmlNode* setXmlNode( tXmlNode *_parent, tXmlConfigNode *_cfg, char *_mem )
         node->vara.iVal = iVal;
         break;
       }
-      case NA: break;
+      case eNA: break;
     }
     pCfg = pCfg->next;
   }
@@ -536,7 +539,7 @@ const regmatch_t* parseXmlMem( char* _mem          ,
   char rxNat[4*XML_TAG_LENGTH];    // regular expression native
   const regmatch_t* pRxMatch;      //
                                    //
-  *_pRcType = NA;                  //
+  *_pRcType = eNA;                  //
   tXmlConfigNode *pCfg = _cfg;     //
                                    //
   while( pCfg )                    //
@@ -546,7 +549,7 @@ const regmatch_t* parseXmlMem( char* _mem          ,
       // ---------------------------------------------------
       // try to match empty tag: <tag> ... </tag>
       // ---------------------------------------------------
-      case EMPTY:                                //
+      case eEMPTY:                                //
       {                                          //
         snprintf( rxNat             ,            //
                   4*XML_TAG_LENGTH  ,            //
@@ -567,7 +570,7 @@ const regmatch_t* parseXmlMem( char* _mem          ,
       // ---------------------------------------------------
       // try to match key / value: key=value
       // ---------------------------------------------------
-      case STR:                                  //
+      case eSTRING:                                  //
       {                                          //
         snprintf( rxNat, 4*XML_TAG_LENGTH,       //
                 "%s\\s*=\\s*(\\S+)",             //
@@ -586,7 +589,7 @@ const regmatch_t* parseXmlMem( char* _mem          ,
       // ---------------------------------------------------
       // try to match key / value: key=value
       // ---------------------------------------------------
-      case INT:                                  //
+      case eINT:                                  //
       {                                          //
         snprintf( rxNat, 4*XML_TAG_LENGTH,       //
                 "%s[[:space:]]*=[[:space:]]*([[:digit:]]+)",   
@@ -604,7 +607,7 @@ const regmatch_t* parseXmlMem( char* _mem          ,
       // ---------------------------------------------------
       // should never come up 
       // ---------------------------------------------------
-      case NA:        //
+      case eNA:        //
       {                //
 	break;              //
       }                      //

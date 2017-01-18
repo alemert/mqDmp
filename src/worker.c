@@ -168,44 +168,36 @@ tXmlConfigNode* setupXmlConfig()
   tXmlConfigNode *rcNode ;
   tXmlConfigNode *parent ;
 
-  if( !(rcNode=newXmlRule(NULL,XML_ROOT,EMPTY,OBLIGATORY)) ) 
+  if( !(rcNode=newXmlRule(NULL,XML_ROOT,eEMPTY,OBLIGATORY)) ) 
   {                //  setup root of the tree
     goto _door;    //
   }                //
                    //
-  if( !(rcNode=newXmlRule(getXmlCfgRoot(),XML_GEN,EMPTY,OBLIGATORY)) ) 
+  if( !(rcNode=newXmlRule(getXmlCfgRoot(),XML_GEN,eEMPTY,OBLIGATORY)) ) 
   {                //  root:general
     goto _door;    //
   }                //
                    //
-  if( !(rcNode=newXmlRule(rcNode,MQIA_TRIGGER_CONTROL,INT,OBLIGATORY))) 
+  if( !(rcNode=newXmlRule(rcNode,MQIA_TRIGGER_CONTROL,3,OBLIGATORY))) 
   {                //  root:general:mqia_trigger_control
     goto _door;    //
   }                //
                    //
-  if( !(rcNode=newXmlRule(getXmlCfgRoot(),XML_MQ_ALL_QMGR,EMPTY,OBLIGATORY)) ) 
+  if( !(rcNode=newXmlRule(getXmlCfgRoot(),XML_MQ_ALL_QMGR,eEMPTY,OBLIGATORY)) ) 
   {                //  root:allqmgr
     goto _door;    //
   }                //
                    //
-  if( !(rcNode=newXmlRule(rcNode,XML_MQ_QMGR,EMPTY,OBLIGATORY)) ) 
+  if( !(rcNode=newXmlRule(rcNode,XML_MQ_QMGR,eEMPTY,OBLIGATORY)) ) 
   {                //  root:allqmgr:qmgr
     goto _door;    //
   }                //
-  parent = rcNode; //
+  parent = rcNode ;
                    //
-  if( !(rcNode=newXmlRule(parent,XML_NAME,EMPTY,OBLIGATORY)) ) 
+  
+  if( !(rcNode=createConfigXmlNode(parent,(-11),"name",eSTRING,OBLIGATORY ) ))
+//if( !(rcNode=newXmlRule(parent,XML_NAME,eSTRING,OBLIGATORY)) ) 
   {                //  root:allqmgr:qmgr:name
-    goto _door;    //
-  }                //
-                   //
-  if( !(rcNode=newXmlRule(parent,XML_NAME,EMPTY,OBLIGATORY)) ) 
-  {                //  root:allqmgr:qmgr:name
-    goto _door;    //
-  }                //
-                   //
-  if( !(rcNode=newXmlRule(parent,XML_NAME,EMPTY,OBLIGATORY)) ) 
-  {                //  root:allqmgr:qmgr:enable
     goto _door;    //
   }                //
                    //

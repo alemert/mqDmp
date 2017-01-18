@@ -60,6 +60,8 @@
           __rcCN=createConfigXmlNode(_parent,_id,_id##_DSCR,_type,_app );  \
           __rcCN;                                                          \
         })
+#endif
+#if 0
 #define newXmlRule( _parent, _id, _type, _app )                            \
         ({                                                                 \
 	  tXmlConfigNode *__rcCN;                                          \
@@ -93,14 +95,24 @@ typedef enum   eXmlAppliance   tXmlAppliance ;
 // ---------------------------------------------------------
 // XML Node
 // ---------------------------------------------------------
+#if(0)
 enum eXmlType 
 { 
-  NA    ,       // not available
-  EMPTY ,       // empty parent node
-//FILTER,       // parent node with string filter 
-  STR   ,       // child node with string value
-  INT           // child node with integer value
+  eNA   ,
+  eEMPTY ,
+  eSTRING  ,
+  eINT   
 };
+#else
+enum eXmlType 
+{ 
+  eNA    = 0,       // not available
+  eEMPTY = 1,       // empty parent node
+  eSTRING   = 2 ,       // child node with string value
+  eINT   = 3        // child node with integer value
+};
+//FILTER,       // parent node with string filter 
+#endif
 
 union uXmlVara 
 {

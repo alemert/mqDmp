@@ -22,7 +22,7 @@ SOURCES = worker.c alias.c xmlhnd.c
 
 LSOWN = msgcat mqutil sogen
 
-MQINST = /opt/mqm/750
+MQINST = /opt/mqm/75a
 
 # ------------------------------------------------------------------------------
 # main source
